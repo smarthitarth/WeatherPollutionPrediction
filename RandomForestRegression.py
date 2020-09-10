@@ -37,19 +37,37 @@ plt.scatter(y_test, prediction)
 
 
 #Hyper parameter Tuning
+from sklearn.model_selection import RandomizedSearchCV
 
-params={
-        "splitter":["best", "random"],
-        "max_depth": [3, 4, 5, 6, 8, 10, 12, 15],
-        "min_samples_leaf": [1, 2, 3, 4, 5],
-        "min_weight_fraction_leaf": [0.1, 0.2, 0.3, 0.4],
-        "max_features": ["auto", "log2", "sqrt", None],
-        "max_leaf_nodes": [None, 10, 20, 30, 40, 50, 60, 70]}
+#No. of trees
+n_estimators = [int(x) for x in np.linspace(start=100, stop=1200, num=12)]
 
-from sklearn.model_selection import GridSearchCV
+#No. of features for split
+max_features = ['auto', 'sqrt']
 
-random_search = GridSearchCV(dtree, param_grid = params, scoring='neg_mean_squared_error', n_jobs=-1, cv=10, verbose=3)
+#max no. of levels
+max_depth = [int(x) for x in np.linspace(5, 30, num=6)]
 
+#Min no. of samples for split
+min_samples_split = [2, 5, 10, 15, 100]
+
+#Min no. of samples required at each leaf node
+min_samples_leaf = [1, 2, 5, 10]
+
+#random grid
+random_grid = {
+        'n_estimators': n_estimators,
+        'max_features': max_features,
+        'max_depth': max_depth,
+        'min_samples_split': min_samples_split,
+        'min_samples_leaf': min_samples_leaf
+    }
+
+
+#Random forest regressor with random grid
+rf = RandomForestRegressor()
+
+rf_random = RandomizedSearchCV(estimator=rf, param_distributions=random_grid, n_iter=100, scoring='neg_mean_squared_error', verbose=2, random_state=7, cv=5)
 
 #timer function
 def timer(start_time = None):
@@ -63,12 +81,12 @@ def timer(start_time = None):
 
 from datetime import datetime
 start_time = timer(None)
-random_search.fit(X, y)
+rf_random.fit(X_train, y_train)
 timer(start_time)
 
 
-print(random_search.best_score_, random_search.best_params_)
-predictions = random_search.predict(X_test)
+print(rf_random.best_score_, rf_random.best_params_)
+predictions = rf_random.predict(X_test)
 sns.histplot(y_test-predictions)
 
 #Accuracy metrics
@@ -80,10 +98,10 @@ print("RMSE: ", np.sqrt(metrics.mean_squared_error(y_test, predictions)))
 #pickle
 import pickle
 #opening file to store data
-file = open('DecisionTree_regression.pkl', 'wb')
+file = open('RandomForest_regression.pkl', 'wb')
 
-#dumping info to file
-pickle.dump(random_search, file)
+#dumping info to file 
+pickle.dump(rf_random, file)
 
 
 
